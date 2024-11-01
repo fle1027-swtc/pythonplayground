@@ -1,22 +1,22 @@
-import csv
+import re
 from collections import Counter
 
-def extract_denied_addresses(csv_file, action_keyword):
+def extract_denied_addresses(log_file, action_keyword):
     ipv4_addresses = []
     ipv6_addresses = []
 
-    with open(csv_file, mode='r', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
+    with open(log_file, mode='r', encoding='utf-8') as file:
+        for line in file:
+            # Check if the line contains the action keyword
+            if action_keyword.lower() in line.lower():
+                # Use regex to find the source IP address
+                ipv4_match = re.search(r'src outside:(\d+\.\d+\.\d+\.\d+)', line)
+                ipv6_match = re.search(r'src outside:([0-9a-fA-F:]+)', line)
 
-        for row in reader:
-            if row.get('action') == action_keyword:  # Use user-provided action keyword
-                ipv4 = row.get('source_ipv4')
-                ipv6 = row.get('source_ipv6')
-
-                if ipv4:
-                    ipv4_addresses.append(ipv4)
-                if ipv6:
-                    ipv6_addresses.append(ipv6)
+                if ipv4_match:
+                    ipv4_addresses.append(ipv4_match.group(1))
+                if ipv6_match:
+                    ipv6_addresses.append(ipv6_match.group(1))
 
     return ipv4_addresses, ipv6_addresses
 
@@ -30,10 +30,10 @@ def get_most_frequent_address(ipv4_addresses, ipv6_addresses):
     return most_common_ipv4, most_common_ipv6
 
 def main():
-    csv_file = input("Please enter the path to your CSV file: ")  # Accept user input for the file path
-    action_keyword = input("Please enter the action keyword to filter by (e.g., 'deny'): ")  # Accept user input for action keyword
+    log_file = input("Please enter the path to your log file: ")  # Accept user input for the file path
+    action_keyword = input("Please enter the action keyword to filter by (e.g., 'Deny'): ")  # Accept user input for action keyword
 
-    ipv4_addresses, ipv6_addresses = extract_denied_addresses(csv_file, action_keyword)
+    ipv4_addresses, ipv6_addresses = extract_denied_addresses(log_file, action_keyword)
     most_common_ipv4, most_common_ipv6 = get_most_frequent_address(ipv4_addresses, ipv6_addresses)
 
     print("Most frequently denied IPv4 address:", most_common_ipv4[0] if most_common_ipv4 else "None")
